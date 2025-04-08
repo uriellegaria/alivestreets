@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "institutions",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "element": "node", "id": 4053802861 }, "geometry": { "type": "Point", "coordinates": [ -100.296584, 25.7538127 ] } },
+{ "type": "Feature", "properties": { "element": "way", "id": 450678981 }, "geometry": { "type": "Point", "coordinates": [ -100.296930155452017, 25.753261367452751 ] } },
+{ "type": "Feature", "properties": { "element": "way", "id": 450799328 }, "geometry": { "type": "Point", "coordinates": [ -100.296930345737138, 25.753263240707721 ] } }
+]
+}

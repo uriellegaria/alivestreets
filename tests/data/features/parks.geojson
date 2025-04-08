@@ -1,0 +1,12 @@
+{
+"type": "FeatureCollection",
+"name": "parks",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "element": "way", "id": 402986921 }, "geometry": { "type": "Point", "coordinates": [ -100.30131888052729, 25.750967681584704 ] } },
+{ "type": "Feature", "properties": { "element": "way", "id": 402988821 }, "geometry": { "type": "Point", "coordinates": [ -100.300160020756465, 25.749870148407911 ] } },
+{ "type": "Feature", "properties": { "element": "way", "id": 402988822 }, "geometry": { "type": "Point", "coordinates": [ -100.3009514, 25.7500254 ] } },
+{ "type": "Feature", "properties": { "element": "way", "id": 450621862 }, "geometry": { "type": "Point", "coordinates": [ -100.300068508429646, 25.752763488863046 ] } },
+{ "type": "Feature", "properties": { "element": "way", "id": 1264786185 }, "geometry": { "type": "Point", "coordinates": [ -100.299454774332034, 25.755481058229904 ] } }
+]
+}

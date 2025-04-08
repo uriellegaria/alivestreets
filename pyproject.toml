@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "alivestreets"
+version = "0.1.0"
+description = ""
+authors = ["Uriel Legaria <uriel_legaria@tec.mx>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<4.0"
+matplotlib = "^3.10.1"
+osmnx = "^2.0.2"
+geopandas = "^1.0.1"
+tqdm = "^4.67.1"
+fiona = "^1.10.1"
+ipykernel = "^6.29.5"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

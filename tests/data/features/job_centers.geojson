@@ -1,0 +1,8 @@
+{
+"type": "FeatureCollection",
+"name": "job_centers",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "element": "way", "id": 387441711 }, "geometry": { "type": "Point", "coordinates": [ -100.317630257538625, 25.688351817425662 ] } }
+]
+}
