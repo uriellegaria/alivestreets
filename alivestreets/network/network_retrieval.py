@@ -77,7 +77,6 @@ def export_graph_geojson(
 
         edges = edges.apply(assign_name, axis=1)
 
-    # 🟢 FIX: copy the slice before modifying
     gdf = edges[['name', 'length', 'geometry']].copy()
 
     os.makedirs(os.path.dirname(path), exist_ok=True)
