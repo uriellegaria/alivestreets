@@ -2,8 +2,47 @@ import osmnx as ox
 from typing import List
 import numpy as np
 import math
-from typing import List
+import networkx as nx
+from shapely.geometry import Point, LineString
 
+
+def project_point_onto_graph_edges(
+    G: nx.MultiDiGraph,
+    point: List[float]
+) -> List[float]:
+    """
+    Projects a point onto the closest edge geometry in the graph.
+
+    Parameters
+    ----------
+    G : nx.MultiDiGraph
+        Graph with 'geometry' attributes on edges.
+    point : List[float]
+        [lon, lat] coordinate.
+
+    Returns
+    -------
+    projected_point : List[float]
+        [lon, lat] of the closest point on the graph.
+    """
+    min_dist = float("inf")
+    proj_coords = None
+    p = Point(point)
+
+    for _, _, _, data in G.edges(keys=True, data=True):
+        geom = data.get("geometry", None)
+        if geom is None:
+            continue
+        candidate = geom.interpolate(geom.project(p))
+        dist = p.distance(candidate)
+        if dist < min_dist:
+            min_dist = dist
+            proj_coords = [candidate.x, candidate.y]
+
+    if proj_coords is None:
+        raise ValueError("Could not project point onto any edge.")
+
+    return proj_coords
 
 def get_bearing(p1: List[float], p2: List[float]) -> float:
     """
@@ -60,7 +99,7 @@ class Line:
     
 
     def get_distance_to_point(self, 
-                            point1:List[float])-> float:
+                            point:List[float])-> float:
 
         a = np.array(self.point1)
         b = np.array(self.point2)

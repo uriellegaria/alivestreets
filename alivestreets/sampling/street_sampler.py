@@ -1,4 +1,4 @@
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Literal
 from alivestreets.sampling.street import Street
 from alivestreets.sampling.geometry import PointDistanceCalculator
 import numpy as np
@@ -9,6 +9,8 @@ from shapely.geometry import LineString
 import geopandas as gpd
 import fiona
 import matplotlib.pyplot as plt
+from alivestreets.features.feature_aggregation import aggregate_feature
+
 
 class StreetSampler:
     def __init__(self, max_points: int, min_points_per_street: int = 1) -> None:
@@ -186,22 +188,36 @@ class StreetSampler:
 
             street.sampling_points = filtered
     
-    def tag_streets(self, attribute_name: str, values: List[Any]) -> None:
+    def tag_streets(
+    self,
+    attribute_name: str,
+    values: list[Any],
+    method: Literal["mean", "sum", "count", "min", "max", "median"] = "mean"
+) -> None:
         """
-        Assign a value to each street for a given attribute.
+        Tag sampling point values to their streets and automatically aggregate them.
 
         Parameters
         ----------
         attribute_name : str
-            Name of the attribute to assign.
-        values : List[Any]
-            One value per street (must match order and length of self.streets).
+            The name of the feature (e.g., "accessibility").
+        values : list
+            One value per sampling point, in the same global order.
+        method : str
+            Aggregation method to produce a street-level value.
         """
-        if len(values) != len(self.streets):
-            raise ValueError("Number of values must match number of streets.")
+        index = 0
+        for street in self.streets:
+            n = len(street.sampling_points)
+            street_values = values[index:index + n]
+            street.set_point_attribute_values(attribute_name, street_values)
+            index += n
 
-        for street, value in zip(self.streets, values):
-            street.set_attribute_value(attribute_name, value)
+        if index != len(values):
+            raise ValueError("Number of values does not match total sampling points.")
+
+        aggregate_feature(self, attribute_name, method)
+    
     
 
     def get_number_of_sampling_points(self) -> int:
@@ -213,6 +229,12 @@ class StreetSampler:
         int
         """
         return len(self.get_all_sampling_points())
+    
+    def tag_streets_raw(self, attribute_name: str, values: list[Any]) -> None:
+        if len(values) != len(self.streets):
+            raise ValueError("Number of values must match number of streets.")
+        for street, value in zip(self.streets, values):
+            street.set_attribute_value(attribute_name, value)
     
 
     def get_street_of_nth_point(self, n: int) -> Optional[tuple[Street, int]]:

@@ -13,6 +13,7 @@ class Street:
         self.segment_lengths: List[float] = []
         self.attributes: Dict[str, Any] = {}
         self.sampling_points: List[List[float]] = []
+        self.point_attributes:Dict[str,List[Any]] = {}
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Street):
@@ -74,6 +75,7 @@ class Street:
                 if line not in lines:
                     lines.append(line)
         return lines
+    
 
     def project_point_into_street(self, point: List[float]) -> np.ndarray:
         lines = self.get_all_lines()
@@ -161,6 +163,13 @@ class Street:
 
     def get_attribute_value(self, name: str) -> Any:
         return self.attributes.get(name, None)
+
+    def set_point_attribute_values(self, name:str, values:List[Any])-> None:
+        self.point_attributes[name] = values
+    
+    def get_point_attribute_values(self, name:str)->List[Any]:
+        return self.point_attributes.get(name, None)
+
 
     def get_bearings(self) -> List[float]:
         delta_fraction = 0.1
