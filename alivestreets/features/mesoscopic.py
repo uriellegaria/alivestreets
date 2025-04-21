@@ -2,10 +2,11 @@ import networkx as nx
 import numpy as np
 import numpy.typing as npt
 from shapely.geometry import Point, LineString
-from typing import Optional, List
+from typing import Optional, List, Literal
 from alivestreets.sampling.geometry import PointDistanceCalculator
 from tqdm import tqdm
 from alivestreets.sampling.geometry import project_point_onto_graph_edges
+import requests
 
 
 def compute_geodesic_distance_to_amenities(
@@ -180,6 +181,134 @@ def get_min_geodesic_distances_to_amenities(
 
     return min_distances
 
+def compute_gravity_accessibility(
+    distances: List[float | None], 
+    weights: List[float], 
+    beta: float = 1
+) -> Optional[float]:
+
+    accessibility = 0.0
+    found_valid = False
+    for i in range(len(distances)):
+        d = distances[i]
+        if d is not None:
+            accessibility += weights[i] * np.exp(-beta * d)
+            found_valid = True
+
+    return accessibility if found_valid else None
+
+
+def compute_cumulative_accessibility(
+    distances: List[float | None], 
+    weights: List[float], 
+    threshold: float = 1200
+) -> Optional[float]:
+
+    count = 0.0
+    found = False
+    for i in range(len(distances)):
+        if distances[i] is not None:
+            found = True
+            if distances[i] < threshold:
+                count += weights[i]
+
+    return count if found else None
+
+
+def compute_gravity_accessibilities(
+    origins: List[List[float]],
+    amenities: List[List[float]],
+    weights: List[float],
+    G: Optional[nx.MultiDiGraph] = None,
+    distance_type: Literal["geodesic", "network"] = "geodesic",
+    beta: float = 1,
+    **kwargs
+) -> List[Optional[float]]:
+   
+    results: List[Optional[float]] = []
+
+    for origin in tqdm(origins):
+        if distance_type == "geodesic":
+            distances = compute_geodesic_distance_to_amenities(origin, amenities)
+        elif distance_type == "network":
+            assert G is not None, "Graph G must be provided for network distances"
+            distances = compute_network_distance_to_amenities(origin, amenities, G, **kwargs)
+        else:
+            raise ValueError("distance_type must be 'geodesic' or 'network'")
+
+        score = compute_gravity_accessibility(distances, weights, beta=beta)
+        results.append(score)
+
+    return results
+
+
+def compute_cumulative_accessibilities(
+    origins: List[List[float]],
+    amenities: List[List[float]],
+    weights: List[float],
+    G: Optional[nx.MultiDiGraph] = None,
+    distance_type: Literal["geodesic", "network"] = "geodesic",
+    threshold: float = 1200,
+    **kwargs
+) -> List[Optional[float]]:
+    """
+    Computes cumulative accessibility for a list of origin points.
+
+    Same structure as gravity version.
+    """
+    from .mesoscopic import compute_geodesic_distance_to_amenities, compute_network_distance_to_amenities
+
+    results: List[Optional[float]] = []
+
+    for origin in tqdm(origins):
+        if distance_type == "geodesic":
+            distances = compute_geodesic_distance_to_amenities(origin, amenities)
+        elif distance_type == "network":
+            assert G is not None, "Graph G must be provided for network distances"
+            distances = compute_network_distance_to_amenities(origin, amenities, G, **kwargs)
+        else:
+            raise ValueError("distance_type must be 'geodesic' or 'network'")
+
+        score = compute_cumulative_accessibility(distances, weights, threshold=threshold)
+        results.append(score)
+
+    return results
+
+
+def get_walk_scores(api_key: str, points: List[List[float]]) -> List[Optional[float]]:
+    """
+    Compute the walk score values for a list of geographic points (lon, lat).
+    -------------------------------------
+    """
+    base_url = "https://api.walkscore.com/score"
+    walk_score_values = []
+
+    for point in tqdm(points):
+        longitude, latitude = point
+        params = {
+            "format": "json",
+            "lat": latitude,
+            "lon": longitude,
+            "wsapikey": api_key,
+            "transit": 0,
+            "bike": 0
+        }
+
+        try:
+            response = requests.get(base_url, params=params)
+            response.raise_for_status()
+            data = response.json()
+            if data.get("status") == 1:
+                walk_score = data.get("walkscore", None)
+            else:
+                walk_score = None
+        except requests.exceptions.RequestException:
+            walk_score = None
+
+        walk_score_values.append(walk_score)
+
+    return walk_score_values
+    
 
 
 

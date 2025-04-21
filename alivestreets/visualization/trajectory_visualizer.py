@@ -11,13 +11,14 @@ def plot_trajectory_on_graph(
     attribute_name: Optional[str] = None,
     ax: Optional[Any] = None,
     node_pos_key: str = "pos",
-    default_color: str = "#CCCCCC",
+    default_color: str = "#C98F35",  # Burnt Gold for edges
     min_color: tuple = (58 / 255, 154 / 255, 217 / 255),
     max_color: tuple = (255 / 255, 77 / 255, 158 / 255),
     width: float = 3.0,
     node_size: int = 10, 
     edge_size: float = 3.0,
-    alpha:float = 0.5
+    alpha: float = 0.5, 
+    node_color: str = "#3E7D3E"
 ) -> None:
     """
     Plot a trajectory over a graph using custom RGB color gradient based on an attribute.
@@ -30,10 +31,20 @@ def plot_trajectory_on_graph(
     # Position lookup
     pos = {n: (d["x"], d["y"]) for n, d in G.nodes(data=True) if "x" in d and "y" in d}
 
-    # Draw background
-    nx.draw(G, pos, ax=ax, node_size=node_size, edge_color=default_color, alpha=alpha, with_labels=False, width = edge_size )
+    # Draw background with fixed node/edge colors
+    nx.draw(
+        G,
+        pos,
+        ax=ax,
+        node_size=node_size,
+        node_color=node_color,       # Deep Void Purple
+        edge_color=default_color,   # Burnt Gold
+        alpha=alpha,
+        with_labels=False,
+        width=edge_size
+    )
 
-    # Prepare edge data
+    # Prepare edge data for trajectory
     edges = []
     values = []
 
@@ -50,6 +61,42 @@ def plot_trajectory_on_graph(
 
     if not edges:
         return
+
+    if attribute_name is None:
+        # Solid color trajectory
+        nx.draw_networkx_edges(
+            G,
+            pos,
+            edgelist=edges,
+            edge_color=default_color,
+            width=width,
+            ax=ax
+        )
+    else:
+        # Attribute-based color trajectory
+        finite_vals = [v for v in values if v is not None]
+        if not finite_vals:
+            return
+        vmin, vmax = min(finite_vals), max(finite_vals)
+        norm = Normalize(vmin=vmin, vmax=vmax)
+
+        for (u, v), val in zip(edges, values):
+            if val is None:
+                color = default_color
+            else:
+                t = norm(val)
+                color = tuple(np.array(min_color) + t * (np.array(max_color) - np.array(min_color)))
+            nx.draw_networkx_edges(
+                G,
+                pos,
+                edgelist=[(u, v)],
+                edge_color=[color],
+                width=width,
+                ax=ax
+            )
+
+    ax.set_title(f"Trajectory ({attribute_name})" if attribute_name else "Trajectory")
+    ax.set_axis_off()
 
     if attribute_name is None:
         # Solid color path
@@ -72,6 +119,17 @@ def plot_trajectory_on_graph(
 
     ax.set_title(f"Trajectory ({attribute_name})" if attribute_name else "Trajectory")
     ax.set_axis_off()
+
+    if attribute_name is not None and finite_vals:
+        from matplotlib.cm import ScalarMappable
+        from matplotlib.colors import LinearSegmentedColormap
+
+        cmap = LinearSegmentedColormap.from_list("custom_gradient", [min_color, max_color])
+        sm = ScalarMappable(norm=norm, cmap=cmap)
+        sm.set_array([])  # Required for colorbar
+
+        cbar = plt.colorbar(sm, ax=ax, orientation="vertical", shrink=0.8, pad=0.01)
+        cbar.set_label(attribute_name, fontsize=10)
 
 
 def plot_attribute_time_series(
