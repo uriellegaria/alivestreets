@@ -10,6 +10,7 @@ import geopandas as gpd
 import fiona
 import matplotlib.pyplot as plt
 from alivestreets.features.feature_aggregation import aggregate_feature
+from tqdm import tqdm
 
 
 class StreetSampler:
@@ -111,7 +112,6 @@ class StreetSampler:
     def project_point(self, point: List[float]) -> tuple[List[float], Street]:
         """
         Project a given point to its closest location on any street.
-
         Parameters
         ----------
         point : List[float]
@@ -154,9 +154,8 @@ class StreetSampler:
         """
         use_quality = qualities is not None and len(qualities) == len(locations)
 
-        for i, location in enumerate(locations):
+        for i, location in enumerate(tqdm(locations, desc="Projecting Locations")):
             projected_point, street = self.project_point(location)
-
             if use_quality:
                 if qualities[i] > quality_threshold:
                     street.sampling_points.append(projected_point)

@@ -6,6 +6,7 @@ from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
 from pyproj import Transformer
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.colors import LogNorm
 
 class MapVisualizer:
     def __init__(self) -> None:
@@ -57,15 +58,30 @@ class MapVisualizer:
     colorbar: bool = True,
     colorbar_label: str | None = None,
     colorbar_orientation: Literal["horizontal", "vertical"] = "vertical", 
-    clipped_max_value = None, 
-    clipped_min_value = None, 
-    none_color = "gray"
+    apply_log: bool = False, 
+    none_color = "gray",
+    min_percentile: int = 1,
+    max_percentile: int = 90
 ) -> None:
         if not self.network_layers:
             raise ValueError("No street networks added to visualize.")
 
+        # Collect all valid attribute values across layers
+        all_values = [
+            street.attributes.get(layer["attribute"], None)
+            for layer in self.network_layers
+            for street in layer["sampler"].streets
+            if street.attributes.get(layer["attribute"], None) is not None and (street.attributes.get(layer["attribute"], None) > 0 if apply_log else True)
+        ]
+
+        # Compute percentile-based normalization limits
+        p_initial, p_final = np.percentile(all_values, [min_percentile, max_percentile])
+        if not apply_log:
+            norm = Normalize(vmin=p_initial, vmax=p_final)
+        else:
+            norm = LogNorm(vmin=max(p_initial, 1e-3), vmax=p_final)
+
         transformer = Transformer.from_crs(crs, "EPSG:3857", always_xy=True) if transform_coords else None
-        norm = Normalize(vmin=self.global_min, vmax=self.global_max)
 
         for layer in self.network_layers:
             sampler = layer["sampler"]
@@ -77,10 +93,11 @@ class MapVisualizer:
 
             for street in sampler.streets:
                 value = street.attributes.get(attr, None)
-                if value is None:
+                if value is None or (apply_log and value <= 0):
                     color = none_color
                 else:
-                    t = (value - self.global_min) / (self.global_max - self.global_min) if self.global_max != self.global_min else 0
+                    t = norm(value)
+                    t = np.clip(float(t), 0, 1)
                     color = tuple(cmin + t * (cmax - cmin))
 
                 for segment in street.street_segments:

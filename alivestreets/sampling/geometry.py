@@ -109,10 +109,10 @@ class Line:
         ap = p - a
 
         denominator = np.dot(ab, ab)
-        alpha = np.dot(ap, ap)/denominator if denominator != 0 else 0
+        alpha = np.dot(ab, ap)/denominator if denominator != 0 else 0
 
         if(0<= alpha <=1):
-            projection = a + alpha + ab
+            projection = a + alpha*ab
         
         else:
             projection = (a + b)/2
@@ -120,18 +120,24 @@ class Line:
         return float(np.linalg.norm(p - projection))
     
 
-    def get_point_projection(self, 
-                            point:List[float]) -> np.ndarray:
-        
-        a = np.array(self.point1)
-        b = np.array(self.point2)
-        p = np.array(point)
+    def get_point_projection(self, point: List[float]) -> np.ndarray:
+        """
+        Orthogonal projection of *point* onto this finite segment.
+        If the perpendicular foot would fall outside [A,B] we return the
+        segment’s mid‑point (same rule you already use in get_distance_to_point).
+        """
+        a = np.array(self.point1, dtype=float)
+        b = np.array(self.point2, dtype=float)
+        p = np.array(point,       dtype=float)
 
         ab = b - a
         ap = p - a
-        denominator = np.dot(ab, ab)
-        alpha = np.dot(ab, ap)/denominator if denominator != 0 else 0
+        denom = np.dot(ab, ab)
+        alpha = 0.0 if denom == 0 else np.dot(ab, ap) / denom   # correct dot product
 
-        projection = a + alpha*ab
+        if 0.0 <= alpha <= 1.0:                 # foot lies on the segment
+            projection = a + alpha * ab
+        else:                                   # outside – use segment mid‑point
+            projection = (a + b) * 0.5
 
         return projection
