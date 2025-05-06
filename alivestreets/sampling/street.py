@@ -184,6 +184,21 @@ class Street:
             bearing = get_bearing(point_arr.tolist(), ref_point.tolist())
             bearings.append(bearing)
         return bearings
+    
+
+    def get_reference_points(self) -> List[float]:
+        delta_fraction = 0.1
+        reference_points = []
+        for point in self.sampling_points:
+            point_arr = np.array(point)
+            line = self.get_closest_line(point)
+            p1 = np.array(line.point1)
+            p2 = np.array(line.point2)
+            offset_vector = (p2 - p1) * delta_fraction
+            ref_point = point_arr + offset_vector
+            reference_points.append(ref_point)
+        return reference_points
+    
 
 
 

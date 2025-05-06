@@ -199,7 +199,7 @@ class StreetViewImageCollector:
     next_lon: float,
     output_dir: str,
     mode: str = "both"
-) -> dict:
+) -> Tuple[List[np.ndarray], List[dict]]:
         """
         Collect sidewalk-oriented views based on calculated bearing.
 
@@ -257,7 +257,7 @@ class StreetViewImageCollector:
             right_path = os.path.join(views_dir, "sidewalk_right.jpg")
             cv2.imwrite(right_path, image_right)
             metadata.append({
-                "metadta":overall_metadata,
+                "metadata":overall_metadata,
                 "view": "right",
                 "heading": right_heading,
                 "lat": lat,
@@ -310,7 +310,7 @@ class StreetViewImageCollector:
         """
         os.makedirs(output_dir, exist_ok=True)
 
-        url = f"https://maps.googleapis.com/maps/api/streetview?size={self.size[0]}x{self.size[1]}&location={lat},{lon}&heading={heading}&pitch={self.pitch}&fov={self.fov}&key={self.api_key}"
+        url = f"https://maps.googleapis.com/maps/api/streetview?size={self.size[0]}x{self.size[1]}&location={lat},{lon}&heading={heading}&pitch={pitch}&fov={self.fov}&key={self.api_key}"
         response = requests.get(url, stream=True)
         img_array = np.asarray(bytearray(response.raw.read()), dtype=np.uint8)
         image = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
