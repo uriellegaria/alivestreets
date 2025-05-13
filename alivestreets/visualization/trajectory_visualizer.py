@@ -4,6 +4,8 @@ import numpy as np
 
 from typing import List, Optional, Any
 from matplotlib.colors import Normalize
+from matplotlib.cm import ScalarMappable
+from matplotlib.colors import LinearSegmentedColormap
 
 def plot_trajectory_on_graph(
     G: nx.MultiDiGraph,
@@ -15,10 +17,15 @@ def plot_trajectory_on_graph(
     min_color: tuple = (58 / 255, 154 / 255, 217 / 255),
     max_color: tuple = (255 / 255, 77 / 255, 158 / 255),
     width: float = 3.0,
-    node_size: int = 10, 
+    node_size: float = 10, 
     edge_size: float = 3.0,
     alpha: float = 0.5, 
-    node_color: str = "#3E7D3E"
+    node_color: str = "#3E7D3E",
+    cmap=None, 
+    zoom = False, 
+    orientation = "horizontal",
+    min_percentile: int = 0,      
+    max_percentile: int = 100
 ) -> None:
     """
     Plot a trajectory over a graph using custom RGB color gradient based on an attribute.
@@ -74,10 +81,16 @@ def plot_trajectory_on_graph(
         )
     else:
         # Attribute-based color trajectory
-        finite_vals = [v for v in values if v is not None]
-        if not finite_vals:
-            return
-        vmin, vmax = min(finite_vals), max(finite_vals)
+        all_vals = [
+        data.get(attribute_name) 
+        for _, _, data in G.edges(data=True) 
+        if data.get(attribute_name) is not None
+        ]
+
+        if not all_vals:
+            return  # No valid attribute values found in the graph
+
+        vmin, vmax = np.percentile(all_vals, [min_percentile, max_percentile])
         norm = Normalize(vmin=vmin, vmax=vmax)
 
         for (u, v), val in zip(edges, values):
@@ -85,7 +98,10 @@ def plot_trajectory_on_graph(
                 color = default_color
             else:
                 t = norm(val)
-                color = tuple(np.array(min_color) + t * (np.array(max_color) - np.array(min_color)))
+                if cmap is not None:
+                    color = cmap(t)
+                else:
+                    color = tuple(np.array(min_color) + t * (np.array(max_color) - np.array(min_color)))
             nx.draw_networkx_edges(
                 G,
                 pos,
@@ -95,40 +111,40 @@ def plot_trajectory_on_graph(
                 ax=ax
             )
 
+    if zoom and len(edges) > 0:
+        # Get all x, y coordinates of nodes used in the trajectory
+        x_vals = []
+        y_vals = []
+        for node in trajectory:
+            if node in pos:
+                x, y = pos[node]
+                x_vals.append(x)
+                y_vals.append(y)
+
+        if x_vals and y_vals:
+            # Compute bounds with 5% padding
+            x_min, x_max = min(x_vals), max(x_vals)
+            y_min, y_max = min(y_vals), max(y_vals)
+
+            x_pad = (x_max - x_min) * 0.05
+            y_pad = (y_max - y_min) * 0.05
+
+            ax.set_xlim(x_min - x_pad, x_max + x_pad)
+            ax.set_ylim(y_min - y_pad, y_max + y_pad)
+    
     ax.set_title(f"Trajectory ({attribute_name})" if attribute_name else "Trajectory")
     ax.set_axis_off()
+    ax.set_aspect('equal', adjustable='box')
 
-    if attribute_name is None:
-        # Solid color path
-        nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color=default_color, width=width, ax=ax)
-    else:
-        # Color path with custom RGB scale
-        finite_vals = [v for v in values if v is not None]
-        if not finite_vals:
-            return
-        vmin, vmax = min(finite_vals), max(finite_vals)
-        norm = Normalize(vmin=vmin, vmax=vmax)
+    if attribute_name is not None and all_vals:
 
-        for (u, v), val in zip(edges, values):
-            if val is None:
-                color = default_color
-            else:
-                t = norm(val)
-                color = tuple(np.array(min_color) + t * (np.array(max_color) - np.array(min_color)))
-            nx.draw_networkx_edges(G, pos, edgelist=[(u, v)], edge_color=[color], width=width, ax=ax)
-
-    ax.set_title(f"Trajectory ({attribute_name})" if attribute_name else "Trajectory")
-    ax.set_axis_off()
-
-    if attribute_name is not None and finite_vals:
-        from matplotlib.cm import ScalarMappable
-        from matplotlib.colors import LinearSegmentedColormap
-
-        cmap = LinearSegmentedColormap.from_list("custom_gradient", [min_color, max_color])
-        sm = ScalarMappable(norm=norm, cmap=cmap)
+        cmap_obj = cmap if cmap is not None else LinearSegmentedColormap.from_list(
+            "custom_gradient", [min_color, max_color]
+        )
+        sm = ScalarMappable(norm=norm, cmap=cmap_obj)
         sm.set_array([])  # Required for colorbar
 
-        cbar = plt.colorbar(sm, ax=ax, orientation="vertical", shrink=0.8, pad=0.01)
+        cbar = plt.colorbar(sm, ax=ax, orientation=orientation, shrink=0.8, pad=0.01)
         cbar.set_label(attribute_name, fontsize=10)
 
 

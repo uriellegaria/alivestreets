@@ -2,7 +2,7 @@ import networkx as nx
 from shapely.geometry import LineString, Point
 from alivestreets.sampling.street_sampler import StreetSampler
 from alivestreets.sampling.geometry import PointDistanceCalculator
-from typing import Tuple, List, Dict, Optional, Literal
+from typing import Tuple, List, Dict, Optional, Literal, Any
 from collections import defaultdict
 import numpy as np
 
@@ -207,4 +207,57 @@ def attach_sampler_segment_attributes_to_graph(
                     G.edges[u, v, k][attribute_name] = float(np.sum(fallback_vals))
                 elif aggregation == "median":
                     G.edges[u, v, k][attribute_name] = float(np.median(fallback_vals))
+
+
+def attach_sampler_street_attributes_to_graph(
+    G: nx.MultiDiGraph,
+    sampler: StreetSampler,
+    attribute_name: str,
+    aggregation: Literal["mean", "sum", "median"] = "mean",
+    none_value: Any = None,
+) -> None:
+    """
+    Tag every edge in `G` with a single value per street (identified via `street_id`).
+
+    Parameters
+    ----------
+    G : nx.MultiDiGraph
+        Graph whose edges already store 'street_id'.
+    sampler : StreetSampler
+        The sampler holding per-street sampling-point attributes.
+    attribute_name : str
+        Name of the sampling-point attribute to aggregate.
+    aggregation : {"mean","sum","median"}
+        How to combine point-level values into the street value.
+    none_value
+        What to write when a street has no valid values (`None` keeps attribute absent).
+    """
+
+    # --- 1.  build one aggregated value per street ---------------------------------
+    street_value: Dict[str, float] = {}
+    for street in sampler.streets:
+        values = [v for v in street.point_attributes.get(attribute_name, []) if v is not None]
+        if not values:
+            if none_value is not None:
+                street_value[street.street_id] = none_value
+            continue
+
+        if aggregation == "mean":
+            agg = float(np.mean(values))
+        elif aggregation == "sum":
+            agg = float(np.sum(values))
+        elif aggregation == "median":
+            agg = float(np.median(values))
+        else:
+            raise ValueError(f"Unsupported aggregation: {aggregation}")
+
+        street_value[street.street_id] = agg
+
+    for _, _, data in G.edges(data=True):
+        sid = data.get("street_id")
+        if sid in street_value:
+            val = street_value[sid]
+            if val is not None:
+                data[attribute_name] = val
+
 

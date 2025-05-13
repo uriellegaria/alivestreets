@@ -300,6 +300,22 @@ click = ">=4.0"
 test = ["pytest-cov"]
 
 [[package]]
+name = "cmcrameri"
+version = "1.9"
+description = "Perceptually uniform colormaps by Fabio Crameri"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "cmcrameri-1.9-py3-none-any.whl", hash = "sha256:daefca10cc405f437ad292bad52f704c2ba8ae692b3e100da8c25f641997e337"},
+    {file = "cmcrameri-1.9.tar.gz", hash = "sha256:56faf9b7f53eb03fed450137bec7dc25c1854929d7b841b9c75616fc2c357640"},
+]
+
+[package.dependencies]
+matplotlib = "*"
+numpy = "*"
+packaging = "*"
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 description = "Cross-platform colored terminal text."
@@ -2696,4 +2712,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4.0"
-content-hash = "68d18f48ec529cf8bc88ed403690e1600f6a5719a910b4fc4ab193cc09caadcb"
+content-hash = "0ffca22e447cff4f675c2fe57c30cab7ee322303c9b609f078c2fce66e47287a"

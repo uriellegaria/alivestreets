@@ -26,7 +26,9 @@ class MapVisualizer:
         max_color: tuple = (255 / 255, 77 / 255, 158 / 255),
         edge_width: float = 1,
         alpha: float = 1.0,
-        none_color = "gray"
+        none_color = "gray", 
+        cmap = None
+
     ) -> None:
         """
         Queue a StreetSampler layer to be drawn later.
@@ -46,6 +48,7 @@ class MapVisualizer:
             "type": variable_type,
             "min_color": min_color,
             "max_color": max_color,
+            "cmap":cmap,
             "edge_width": edge_width,
             "alpha": alpha,
         })
@@ -60,8 +63,8 @@ class MapVisualizer:
     colorbar_orientation: Literal["horizontal", "vertical"] = "vertical", 
     apply_log: bool = False, 
     none_color = "gray",
-    min_percentile: int = 1,
-    max_percentile: int = 90
+    min_percentile: int = 0,
+    max_percentile: int = 100
 ) -> None:
         if not self.network_layers:
             raise ValueError("No street networks added to visualize.")
@@ -88,6 +91,7 @@ class MapVisualizer:
             attr = layer["attribute"]
             cmin = np.array(layer["min_color"])
             cmax = np.array(layer["max_color"])
+            cmap = layer.get("cmap", None) 
             width = layer["edge_width"]
             alpha = layer["alpha"]
 
@@ -98,7 +102,11 @@ class MapVisualizer:
                 else:
                     t = norm(value)
                     t = np.clip(float(t), 0, 1)
-                    color = tuple(cmin + t * (cmax - cmin))
+                    if cmap is not None:
+                        cmap_obj = plt.get_cmap(cmap)
+                        color = cmap_obj(t)
+                    else:
+                        color = tuple(cmin + t * (cmax - cmin))
 
                 for segment in street.street_segments:
                     coords = segment
@@ -110,8 +118,8 @@ class MapVisualizer:
 
         if colorbar:
             from matplotlib.cm import ScalarMappable
-            cmap = self._create_colormap(cmin, cmax)
-            sm = ScalarMappable(norm=norm, cmap=cmap)
+            cmap_obj = plt.get_cmap(cmap) if cmap is not None else self._create_colormap(cmin, cmax)
+            sm = ScalarMappable(norm=norm, cmap=cmap_obj)
             self.fig.colorbar(sm, ax=self.ax, orientation=colorbar_orientation, label=colorbar_label, pad=0.01)
 
     def initialize_map(self, figsize: tuple[int, int] = (10, 10)) -> None:

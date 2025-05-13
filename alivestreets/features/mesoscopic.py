@@ -15,20 +15,19 @@ def compute_geodesic_distance_to_amenities(
 ) -> npt.NDArray[np.float64]:
     """
     Compute geodesic distances between a single point and multiple amenities.
-
     All coordinates are assumed to be in the form [longitude, latitude].
 
     Parameters
     ----------
-    point : list of float
+    point 
         The [lon, lat] coordinate of the reference point.
-    amenities : list of [float, float]
+    amenities
         A list of [lon, lat] coordinates for amenity locations.
 
     Returns
     -------
-    distances : np.ndarray
-        Array of geodesic distances in meters.
+    distances 
+        List of geodesic distances in meters.
     """
     calculator = PointDistanceCalculator()
     distances = np.array([
@@ -47,6 +46,32 @@ def compute_network_distance_to_amenities(
     precision: int = 7,
     undirected: bool = True
 ) -> list[float | None]:
+
+        """
+        Computes the adistances from a point to different amenity locations. 
+        The distances are computed within a street network. 
+
+        Parameters
+        ----------
+        point
+            Origin point.
+        amenities
+            Amenity destination locations.
+        G
+            Street network.
+        weight
+            Indicates the edge property which will be used to measure distances between nodes.
+        precision
+            Precision for snapping origin and destination points to the network.
+        undirected
+            Establishes whether each edge in the network can be traveled in both directions (mostly true for walking network).
+
+        Returns
+        --------
+        distances
+            List of distances from the origin point to each of the examined amenities.
+
+        """
         calculator = PointDistanceCalculator()
         distances: list[float | None] = []
 
@@ -139,6 +164,31 @@ def get_min_network_distances_to_amenities(
         undirected:bool = True
     )->List[float|None]:
 
+    """
+    Obtains the minimum distances from each point in a list of origins 
+    to a set of available destination amenities.
+
+    Parameters
+    ----------
+        origins
+            List of origin points [lon, lat].
+        amenities
+            List of destination amenities [lon, lat].
+        G
+            Street Network.
+        weight
+            Edge parameter used to measure distances between nodes.
+        precision
+            Precision for snapping origin and destination points to the network.
+        undirected
+            Establishes whether each edge in the network can be traveled in both directions (mostly true for walking network).
+
+    Returns
+    ----------
+    min_distances
+        Minimum network distance from each origin point to the available amenities.
+    """
+
     n_origins = len(origins)
     min_distances:List[float | None] = []
 
@@ -165,7 +215,23 @@ def get_min_geodesic_distances_to_amenities(
     origins: List[List[float]], 
     amenities: List[List[float]]
 )-> List[float|None]:
+    """
+    Provides the minimum geodesic distances from a list of origins to 
+    a list of available amenities. 
 
+    Parameters
+    ------------
+    origins
+        List of origin points [lon, lat].
+    amenities
+        List of amenity points [lon, lat].
+
+    Returns
+    ------------
+    min_distances
+        Minimum geodesic distance from each origin point to the available amenities.        
+
+    """
     min_distances:List[float|None] = []
     n_origins = len(origins)
     for i in tqdm(range(0,n_origins)):
@@ -178,7 +244,6 @@ def get_min_geodesic_distances_to_amenities(
         else:
             min_distances.append(None)
     
-
     return min_distances
 
 def compute_gravity_accessibility(
@@ -186,6 +251,9 @@ def compute_gravity_accessibility(
     weights: List[float], 
     beta: float = 1
 ) -> Optional[float]:
+    """
+    
+    """
 
     accessibility = 0.0
     found_valid = False
