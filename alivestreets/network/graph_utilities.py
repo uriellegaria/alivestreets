@@ -260,4 +260,57 @@ def attach_sampler_street_attributes_to_graph(
             if val is not None:
                 data[attribute_name] = val
 
+def attach_edge_attribute_to_sampler(
+    graph: nx.MultiDiGraph,
+    sampler: StreetSampler,
+    *,
+    edge_attribute: str,
+    street_attribute: str,
+    aggregation: Literal["mean", "median", "max", "min"] = "mean"
+) -> None:
+    """
+    Aggregate an edge-level attribute to a street-level attribute on the sampler.
+
+    Parameters
+    ----------
+    graph : nx.MultiDiGraph
+        Graph whose edges store both the attribute of interest (`edge_attribute`)
+        and a 'street_id' key created by `build_graph_from_sampler`.
+    sampler : StreetSampler
+        The sampler that will receive the aggregated values.
+    edge_attribute : str
+        Name of the numeric attribute on each edge to read.
+    street_attribute : str
+        Name under which the aggregated value will be written to each Street.
+    aggregation : {"mean", "median", "max", "min"}, default "mean"
+        How to combine multiple edge values belonging to the same street.
+    """
+    # 1 ─ collect values per street_id
+    per_street_values = defaultdict(list)
+    for _, _, data in graph.edges(data=True):
+        sid = data.get("street_id")
+        val = data.get(edge_attribute)
+        if sid is None or val is None:
+            continue
+        per_street_values[sid].append(val)
+
+    # 2 ─ aggregate and store
+    for street in sampler.streets:
+        vals = per_street_values.get(street.street_id)
+        if not vals:           # no data → leave attribute absent
+            continue
+
+        if   aggregation == "mean":
+            agg_val = float(np.mean(vals))
+        elif aggregation == "median":
+            agg_val = float(np.median(vals))
+        elif aggregation == "max":
+            agg_val = float(np.max(vals))
+        elif aggregation == "min":
+            agg_val = float(np.min(vals))
+        else:
+            raise ValueError(f"Unsupported aggregation: {aggregation}")
+
+        street.set_attribute_value(street_attribute, agg_val)
+
 
