@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import List, Sequence, Tuple
+import random
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -30,62 +31,78 @@ class TransparentMaskVisualizer:
         return float(ys.mean()), float(xs.mean())
 
     def visualize(
-        self,
-        image: np.ndarray,                    # H×W×3 (uint8 0-255 or float 0-1)
-        masks: Sequence[np.ndarray],          # each H×W binary
-        labels: Sequence[str],                # one per mask
-        *,
-        figsize: Tuple[int, int] = (7, 7),
-        title: str = "",
-        colors: Sequence[str] | None = None,  # hex strings or matplotlib-style
-        alpha: float = 0.6,
-        font_size: int = 12,
-        font_color: str = "#ffffff",
-        save_path: str | None = None,
-        dpi: int = 600,
-    ) -> None:
+    self,
+    image: np.ndarray,                    
+    masks: Sequence[np.ndarray],         
+    labels: Sequence[str],               
+    *,
+    figsize: Tuple[int, int] = (7, 7),
+    title: str = "",
+    colors: Sequence[str] | None = None, 
+    alpha: float = 0.6,
+    font_color: str | Sequence[str] = "#ffffff",
+    font_size: int = 12,
+    save_path: str | None = None,
+    dpi: int = 600,
+    ax: Optional[Any] = None,
+    offset_x: int = 0,
+    offset_y: int = 0
+) -> None:
         """
         Plot `image` with semi-transparent `masks` and their `labels`.
 
-        If `colors` is None, distinct hues are pulled from seaborn's tab20/20b/20c
-        palettes, giving up to 60 visually separable colors.
+        `font_color` can be a single color (applies to all labels) or a list/tuple
+        with one color per label.
         """
         if len(masks) != len(labels):
             raise ValueError("`masks` and `labels` must have the same length.")
 
+        # ─── handle mask colors ────────────────────────────────────────────────
         if colors is None:
-            palette: List[Tuple[float, float, float]] = (
-                sns.color_palette("tab20", 20)
-                + sns.color_palette("tab20b", 20)
+            palette = (
+                sns.color_palette("tab20b", 20)
                 + sns.color_palette("tab20c", 20)
+                + sns.color_palette("tab20", 20)
             )
-            colors_rgb: List[Tuple[float, float, float]] = palette[: len(masks)]
+            idx = np.linspace(0, len(palette) - 1, len(masks)).astype(int)
+            colors_rgb = [palette[i] for i in idx]
         else:
-            # convert supplied colors to RGB 0-1 tuples
             colors_rgb = [to_rgb(c) for c in colors]
 
-        plt.figure(figsize=figsize)
-        plt.imshow(image / 255.0 if image.dtype != float or image.max() > 1 else image)
+        # ─── handle font colors ────────────────────────────────────────────────
+        if isinstance(font_color, (list, tuple, np.ndarray)):
+            if len(font_color) != len(labels):
+                raise ValueError("Length of `font_color` list must match `labels`.")
+            font_colors = font_color
+        else:
+            font_colors = [font_color] * len(labels)
 
-        for mask, label, rgb in zip(masks, labels, colors_rgb):
+        # ─── draw ──────────────────────────────────────────────────────────────
+        if ax is None:
+            fig, ax = plt.subplots(figsize=figsize)
+
+        ax.imshow(image / 255.0 if image.dtype != float or image.max() > 1 else image)
+
+        for mask, label, rgb, fcol in zip(masks, labels, colors_rgb, font_colors):
             overlay = self._transparent_mask(mask.astype(bool), rgb, alpha)
-            plt.imshow(overlay)
+            ax.imshow(overlay)
             cy, cx = self._centroid(mask)
-            plt.text(
-                cx,
-                cy,
+            ax.text(
+                cx + offset_x,
+                cy + offset_y,
                 label,
                 ha="center",
                 va="center",
                 fontsize=font_size,
-                color=font_color,
+                color=fcol,
             )
 
         if title:
-            plt.title(title)
-        plt.axis("off")
+            ax.set_title(title)
+        ax.axis("off")
 
         if save_path is not None:
-            plt.savefig(save_path, dpi=dpi, bbox_inches="tight")
+            plt.savefig(save_path, dpi=dpi, bbox_inches="tight", transparent=True)
 
-        plt.show()
+        if ax is None:
+            plt.show()

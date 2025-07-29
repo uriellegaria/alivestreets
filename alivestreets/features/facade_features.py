@@ -41,7 +41,7 @@ class FacadeFeatureExtractor(StreetViewFeatureExtractor):
             Path where the .pt file will be downloaded.
         """
         #Non-failure case
-        URL = "https://tecmx-my.sharepoint.com/personal/uriel_legaria_tec_mx/_layouts/15/download.aspx?share=Ee9PBbcma2NGmLIUqYGRUKcBmOvlBh0NKnRPZkoTUFaFNg"
+        URL = "https://huggingface.co/urilp4669/Facade_Segmentator/resolve/main/facades.pt"
 
         response = requests.get(URL, stream=True)
         if response.status_code == 200:
@@ -51,19 +51,24 @@ class FacadeFeatureExtractor(StreetViewFeatureExtractor):
             print("Model downloaded.")
 
             self.model_path = save_path
-            
+
             self.facade_feature_id_dictionary = {
-                "door":0,
-                "facade":1,
-                "other_street_furniture":2,
-                "pole":3,
-                "signage":4,
-                "sky":5,
-                "trash_bin":6,
-                "vegetation":7,
-                "vehicle":8,
-                "window":9
+                "bench":0,
+                "door":1,
+                "facade":2,
+                "graffiti":3,
+                "person":4,
+                "sidewalk":5,
+                "signage":6,
+                "sky":7,
+                "street_light":8,
+                "trash":9,
+                "utility_pole":10,
+                "vegetation":11,
+                "vehicle":12,
+                "window":13
             }
+
             self.model = YOLO(save_path)
         else:
             raise Exception("Failed to download the model.")
@@ -135,6 +140,27 @@ class FacadeFeatureExtractor(StreetViewFeatureExtractor):
     confidence_threshold: float = 0.6,
     operation: Optional[Callable[..., Any]] = None, 
     ) -> Any:
+        """
+        Computes the façade features for the given image. If `operation` is provided, it will be called with the
+        `FacadeFeatureExtractor` instance, the image, the input feature names, and the confidence threshold.
+        If `operation` is None, it will return a dictionary with the instance counts and metadata.
+
+        Parameters
+        ----------
+        input_feature_names
+            List of feature names used to compute the result. Each of them must correspond to a name in the
+            facade_feature_id_dictionary.
+        image
+            Input image as a numpy array.
+        
+        confidence_threshold
+            Threshold for filtering the masks based on confidence scores
+        
+        operation
+            Optional callable operation that takes the extractor, image, input feature names, and confidence threshold.
+            If provided, it will be used to compute the result instead of the default behavior, which obtains instance
+            counts and metadata.
+        """
         if operation is None:
 
             result = {}

@@ -8,19 +8,27 @@ import numpy as np
 class Street:
 
     def __init__(self, street_id: str) -> None:
+        #Name of the street
         self.street_id: str = street_id
+        #The Street Segments that are part of the street
+        #Each segment is a list of tuples (x0, y0)->(x1, y1)
         self.street_segments: List[List[List[float]]] = []
         self.segment_lengths: List[float] = []
+        #Attributes of the street (e.g. GVI, Mean building height)
         self.attributes: Dict[str, Any] = {}
+        #Sampling points where images are taken and attributes are computed. 
         self.sampling_points: List[List[float]] = []
+        #Attribute values at point level. 
         self.point_attributes:Dict[str,List[Any]] = {}
 
     def __eq__(self, other: object) -> bool:
+        #Two streets are regarded as equal if their id matches. 
         if not isinstance(other, Street):
             return NotImplemented
         return self.street_id == other.street_id
 
     def add_segment(self, segment: List[List[float]]) -> None:
+        #Checkes tha the segment or the reverse version of it does not already belong to the street.
         if segment not in self.street_segments and segment[::-1] not in self.street_segments:
             self.street_segments.append(segment)
             calculator = PointDistanceCalculator()

@@ -45,7 +45,7 @@ class GVIFeatureExtractor(StreetViewFeatureExtractor):
             Path where the .pt file will be downloaded.
         """
         #Non-failure case
-        URL = "https://tecmx-my.sharepoint.com/personal/uriel_legaria_tec_mx/_layouts/15/download.aspx?share=Ee9PBbcma2NGmLIUqYGRUKcBmOvlBh0NKnRPZkoTUFaFNg"
+        URL = "https://huggingface.co/urilp4669/Facade_Segmentator/resolve/main/facades.pt"
 
         response = requests.get(URL, stream=True)
         if response.status_code == 200:
@@ -55,7 +55,7 @@ class GVIFeatureExtractor(StreetViewFeatureExtractor):
             print("Model downloaded.")
 
             self.model_path = save_path
-            self.vegetation_class_id = 7
+            self.vegetation_class_id = 11
             self.model = YOLO(save_path)
         else:
             raise Exception("Failed to download the model.")

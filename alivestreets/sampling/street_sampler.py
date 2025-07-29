@@ -229,11 +229,41 @@ class StreetSampler:
         """
         return len(self.get_all_sampling_points())
     
-    def tag_streets_raw(self, attribute_name: str, values: list[Any]) -> None:
+    def tag_streets_raw(self, 
+        attribute_name: str, 
+        values: list[Any], 
+        method: Literal["mean", "sum", "count", "min", "max", "median"] = "mean") -> None:
+        """
+        Tags streets using only the street attribute values. 
+
+
+        Parameters
+        ----------
+        attribute_name
+            Name of the attribute
+        values
+            list of values 
+        """
         if len(values) != len(self.streets):
             raise ValueError("Number of values must match number of streets.")
         for street, value in zip(self.streets, values):
             street.set_attribute_value(attribute_name, value)
+            if(method == "mean"):
+                n_points = street.get_number_of_points()
+                repeated_value_list = [value for i in range(0,n_points)]
+                street.set_point_attribute_values(
+                    attribute_name,
+                    repeated_value_list
+                )
+            elif(method == "sum"):
+                n_points = street.get_number_of_points()
+                repeated_value_list = [value/n_points for i in range(0,n_points)]
+                street.set_point_attribute_values(
+                    attribute_name,
+                    repeated_value_list
+                )
+
+
     
 
     def get_street_of_nth_point(self, n: int) -> Optional[tuple[Street, int]]:

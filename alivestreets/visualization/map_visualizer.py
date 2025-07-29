@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from typing import Literal
+from typing import Literal, List, Tuple, Optional
 import contextily as ctx
 import numpy as np
 from matplotlib.colors import Normalize
@@ -120,7 +120,7 @@ class MapVisualizer:
             from matplotlib.cm import ScalarMappable
             cmap_obj = plt.get_cmap(cmap) if cmap is not None else self._create_colormap(cmin, cmax)
             sm = ScalarMappable(norm=norm, cmap=cmap_obj)
-            self.fig.colorbar(sm, ax=self.ax, orientation=colorbar_orientation, label=colorbar_label, pad=0.01)
+            self.colorbar = self.fig.colorbar(sm, ax=self.ax, orientation=colorbar_orientation, label=colorbar_label, pad=0.01)
 
     def initialize_map(self, figsize: tuple[int, int] = (10, 10)) -> None:
         """
@@ -152,7 +152,13 @@ class MapVisualizer:
         )
     
 
-    def finalize_map(self, title: str = "", save_path: str | None = None) -> None:
+    def finalize_map(
+        self, 
+        title: str = "", 
+        save_path: str | None = None, 
+        transparent:bool = False,
+        show_legend:bool = False,
+        legend_font_size:int = 12) -> None:
         """
         Show and optionally save the final map.
         """
@@ -161,11 +167,18 @@ class MapVisualizer:
 
         if title:
             self.ax.set_title(title)
+        
         self.ax.set_aspect("equal")
+        if show_legend:
+            self.ax.legend(loc="best", frameon=True, fontsize = legend_font_size )
         self.ax.axis("off")
 
         if save_path is not None:
-            self.fig.savefig(save_path, dpi=600, bbox_inches="tight")
+            if(not transparent):
+                self.fig.savefig(save_path, dpi=600, bbox_inches="tight")
+            else:
+                self.fig.savefig(save_path, dpi=600, bbox_inches="tight", transparent = True)
+
 
         plt.show()
     
@@ -173,4 +186,56 @@ class MapVisualizer:
     def _create_colormap(self, min_color: tuple, max_color: tuple) -> LinearSegmentedColormap:
         return LinearSegmentedColormap.from_list("custom_cmap", [min_color, max_color])
     
+    def add_points(
+        self,
+        points: List[Tuple[float, float]],
+        weights: List[float],
+        color: str = "blue",
+        labels: Optional[List[str]] = None,
+        min_size: float = 10,
+        max_size: float = 100,
+        label_offset: Tuple[float, float] = (5, 5),
+        alpha: float = 0.7,
+        min_value: Optional[float] = None,
+        max_value: Optional[float] = None,
+        label_family: Optional[str] = None,
+        fontsize: int = 10,
+        fontcolor: str = "black"
+    ) -> None:
+            """
+            Add weighted points to the map, optionally with labels.
+
+            Points should be (lon, lat) pairs. Weights control marker size.
+            """
+            if self.ax is None:
+                raise ValueError("Map not initialized. Call 'initialize_map()' first.")
+            if len(points) != len(weights):
+                raise ValueError("Points and weights lists must have the same length.")
+            if labels and len(points) != len(labels):
+                raise ValueError("Points and labels lists must have the same length if labels are provided.")
+
+            transformer = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
+
+            w_min = min_value if min_value is not None else min(weights)
+            w_max = max_value if max_value is not None else max(weights)
+            size_range = max_size - min_size
+
+            for i, (lon, lat) in enumerate(points):
+                weight = weights[i]
+                t = (weight - w_min) / (w_max - w_min) if w_max != w_min else 0.5
+                size = min_size + t * size_range
+                x, y = transformer.transform(lon, lat)
+
+                self.ax.scatter(
+                    x, y,
+                    s=size,
+                    color=color,
+                    alpha=alpha,
+                    zorder=3,
+                    label=label_family if i == 0 and label_family else None  # only on first point
+                )
+                
+                if labels:
+                    dx, dy = label_offset
+                    self.ax.text(x + dx, y + dy, labels[i], fontsize=fontsize, ha="center", va="center", zorder=4, color = fontcolor)
 

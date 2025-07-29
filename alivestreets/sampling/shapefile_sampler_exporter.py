@@ -1,5 +1,19 @@
 from __future__ import annotations
 
+"""alivestreets – Shapefile exporter
+===================================
+Write a :class:`StreetSampler` to an ESRI Shapefile.  Two export modes:
+
+* ``aggregation="street"`` – every segment inherits the **already
+  aggregated** values stored in :pyattr:`Street.attributes`.
+* ``aggregation="segment"`` – each segment is re‑aggregated from the
+  sampling‑point values in :pyattr:`Street.point_attributes`.  The
+  operator can vary per attribute via *attribute_methods*.
+
+Unnamed streets created by the loader are stored as ``"unnamed_i"``; on
+export they are rendered with an **empty name field** ("") to keep the
+layer clean.
+"""
 
 from typing import Any, Dict, List, Literal, Optional, Sequence
 
@@ -57,7 +71,7 @@ def _aggregate(values: List[Any], method: str) -> Any:
 # Exporter class
 # ────────────────────────────────────────────────────────────────────────────────
 
-class StreetSamplerGeojsonExporter:
+class StreetSamplerShapefileExporter:
     """Exporter for :class:`StreetSampler`.
 
     Parameters
@@ -92,6 +106,23 @@ class StreetSamplerGeojsonExporter:
         ] = "mean",
         distance_tol: float = 1e-9,
     ) -> None:
+        """Write the shapefile.
+
+        Parameters
+        ----------
+        output_path
+            Destination *without* extension (GeoPandas adds ``.shp`` etc.).
+        crs
+            CRS of the output layer.
+        aggregation
+            * ``street``  – copy `Street.attributes` to each segment.
+            * ``segment`` – compute values from sampling points on the segment.
+        default_method
+            Fallback aggregation operator when an attribute is missing in
+            *attribute_methods*.
+        distance_tol
+            Distance (CRS units) for point‑in‑segment assignment.
+        """
 
         rows: List[Dict[str, Any]] = []
         n_streets: int = len(self._sampler.streets)
@@ -142,4 +173,4 @@ class StreetSamplerGeojsonExporter:
 
         # Build & write GeoDataFrame --------------------------------------------
         gdf = gpd.GeoDataFrame(rows, geometry="geometry", crs=crs)
-        gdf.to_file(output_path, driver="GeoJSON")
+        gdf.to_file(output_path, driver="ESRI Shapefile")

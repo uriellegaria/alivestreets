@@ -6,6 +6,7 @@ from typing import List, Optional, Any
 from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import LinearSegmentedColormap
+from contextily import add_basemap
 
 def plot_trajectory_on_graph(
     G: nx.MultiDiGraph,
@@ -25,7 +26,16 @@ def plot_trajectory_on_graph(
     zoom = False, 
     orientation = "horizontal",
     min_percentile: int = 0,      
-    max_percentile: int = 100
+    max_percentile: int = 100, 
+    show_endpoints:bool = False, 
+    color_startpoint:str = "#00b0b0", 
+    color_endpoint:str = "#a1006b", 
+    size_endpoints:int  = 20, 
+    add_basemap: bool = False, 
+    crs:str = "EPSG:4326",
+    tile_url:str = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png",
+    color_all_net: bool = False, 
+    basemap_alpha = 0.8
 ) -> None:
     """
     Plot a trajectory over a graph using custom RGB color gradient based on an attribute.
@@ -34,22 +44,71 @@ def plot_trajectory_on_graph(
     """
     if ax is None:
         fig, ax = plt.subplots(figsize=(10, 8))
-
-    # Position lookup
+    
     pos = {n: (d["x"], d["y"]) for n, d in G.nodes(data=True) if "x" in d and "y" in d}
 
+    if add_basemap and crs != "EPSG:3857":
+        from pyproj import Transformer
+        transformer = Transformer.from_crs(crs, "EPSG:3857", always_xy=True)
+        pos = {n: transformer.transform(*xy) for n, xy in pos.items()}
+        crs = "EPSG:3857" 
+
     # Draw background with fixed node/edge colors
-    nx.draw(
-        G,
-        pos,
-        ax=ax,
-        node_size=node_size,
-        node_color=node_color,       # Deep Void Purple
-        edge_color=default_color,   # Burnt Gold
-        alpha=alpha,
-        with_labels=False,
-        width=edge_size
-    )
+    if color_all_net and attribute_name is not None:
+        all_vals = [
+            data.get(attribute_name)
+            for _, _, data in G.edges(data=True)
+            if data.get(attribute_name) is not None
+        ]
+        if all_vals:
+            vmin, vmax = np.percentile(all_vals, [min_percentile, max_percentile])
+            norm = Normalize(vmin=vmin, vmax=vmax)
+            edge_colors = []
+            for u, v, data in G.edges(data=True):
+                val = data.get(attribute_name)
+                if val is not None:
+                    color = cmap(norm(val)) if cmap is not None else tuple(np.array(min_color) + norm(val) * (np.array(max_color) - np.array(min_color)))
+                else:
+                    color = default_color
+                edge_colors.append(color)
+            
+            nx.draw_networkx_edges(
+                G, pos, ax=ax,
+                edge_color=edge_colors,
+                width=edge_size,
+                alpha=alpha
+            )
+            nx.draw_networkx_nodes(
+                G, pos, ax=ax,
+                node_size=node_size,
+                node_color=node_color,
+                alpha=alpha
+            )
+        else:
+            # fallback to fixed color if no valid values
+            nx.draw(
+                G,
+                pos,
+                ax=ax,
+                node_size=node_size,
+                node_color=node_color,
+                edge_color=default_color,
+                alpha=alpha,
+                with_labels=False,
+                width=edge_size
+            )
+    else:
+        nx.draw(
+            G,
+            pos,
+            ax=ax,
+            node_size=node_size,
+            node_color=node_color,
+            edge_color=default_color,
+            alpha=alpha,
+            with_labels=False,
+            width=edge_size
+        )
 
     # Prepare edge data for trajectory
     edges = []
@@ -110,6 +169,12 @@ def plot_trajectory_on_graph(
                 width=width,
                 ax=ax
             )
+    
+    if show_endpoints and trajectory:
+        x_start, y_start = pos[trajectory[0]]
+        x_end, y_end = pos[trajectory[-1]]
+        ax.scatter(x_start, y_start, c=color_startpoint, s=size_endpoints, zorder=10, edgecolors="white")
+        ax.scatter(x_end, y_end, c=color_endpoint, s=size_endpoints, zorder=10, edgecolors="white")
 
     if zoom and len(edges) > 0:
         # Get all x, y coordinates of nodes used in the trajectory
@@ -146,6 +211,16 @@ def plot_trajectory_on_graph(
 
         cbar = plt.colorbar(sm, ax=ax, orientation=orientation, shrink=0.8, pad=0.01)
         cbar.set_label(attribute_name, fontsize=10)
+    
+    if add_basemap:
+        import contextily as ctx
+        # Try to use your custom tile_url as a provider, fallback to CartoDB Light if not supported
+        try:
+            import xyzservices
+            provider = xyzservices.TileProvider(url=tile_url)
+            ctx.add_basemap(ax, source=provider, crs=crs, alpha = basemap_alpha)
+        except Exception:
+            ctx.add_basemap(ax, source=tile_url, crs=crs, alpha = basemap_alpha)
 
 
 def plot_attribute_time_series(
