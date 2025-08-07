@@ -6,6 +6,7 @@ from PIL import Image
 import cv2
 from typing import Optional, Tuple
 import matplotlib.pyplot as plt
+import requests
 
 
 class Panoramic2FishEye:
@@ -91,7 +92,7 @@ class Panoramic2FishEye:
 class SVFFeatureExtractor(StreetViewFeatureExtractor):
     def __init__(
         self,
-        sky_class_id: int,
+        sky_class_id: int = None,
         confidence_threshold: float = 0,
         fisheye_width: int = 1000,
         fisheye_height: int = 1000,
@@ -140,7 +141,7 @@ class SVFFeatureExtractor(StreetViewFeatureExtractor):
 
         response = requests.get(URL, stream=True)
         if response.status_code == 200:
-            with open(save_path, "wb") as f:
+            with open(model_path, "wb") as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
             print("Model downloaded.")

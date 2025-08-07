@@ -96,7 +96,7 @@ class StreetViewNetworkCollector:
                     potential_path = os.path.join(output_dir, "views", f"view_{i}.jpg")
                     if(os.path.exists(potential_path)):
                         view_paths.append(potential_path)
-                        view_directions.append((360/n_views)*i)
+                        view_directions.append((360/num_views)*i)
 
                 results_dictionary = {
                     "latitude":latitude,
