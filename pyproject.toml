@@ -6,7 +6,7 @@ authors = ["Uriel Legaria <uriel_legaria@tec.mx>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.10,<4.0"
+python = ">=3.10,<3.13"
 matplotlib = "^3.10.1"
 osmnx = "^2.0.2"
 geopandas = "^1.0.1"
